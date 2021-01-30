@@ -1,5 +1,4 @@
 from warpcore.engineering import WarpCore
-import threading  # Needed if you intend to lock for writing to shared resources
 
 import hashlib  # Used only for this example
 from datetime import datetime  # Used only for this example
@@ -10,18 +9,10 @@ def do_the_thing(number):
     print(f"Thread {number}")
     hash = hashlib.pbkdf2_hmac("sha512", str.encode(f"{number}"), b"salt", 100000)
 
-    lock.acquire()  # Wait for, and prevent execution beyond this point for any other threads
-    result_list.append(hash)
-    lock.release()  # Let the other threads know it's safe for the next to write
-
-    # Alternatively, use Try:Finally clause to ensure the lock.release() always happens
-    """
-    lock.acquire()
-    try:
+    # This context manager method does not require any additional imports,
+    # and ensures the lock is always released.
+    with lock_a:  # Wait for, and prevent execution beyond this point for any other threads
         result_list.append(hash)
-    finally:
-        lock.release()
-    """
 
 
 if __name__ == "__main__":
@@ -30,8 +21,8 @@ if __name__ == "__main__":
     # Build a task list
     tasks_list = []
 
-    # Build the lock
-    lock = threading.Lock()
+    # Build the lock - we can create UNLIMITED locks, just instance them this way
+    lock_a = WarpCore.new_lock()
 
     for number in range(0, 100):
         # Build your tasks/jobs list any way needed

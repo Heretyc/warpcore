@@ -27,9 +27,27 @@ __license__ = "Apache 2.0"
 
 class WarpCore:
     def __init__(self):
-        self.max_threads = cpu_count()
-        self.chunk_size = self.max_threads * 32
-        self._threadLimiter = threading.BoundedSemaphore(self.max_threads)
+        self._max_threads = cpu_count()
+        self._chunk_size = self._max_threads * 32
+        self._threadLimiter = threading.BoundedSemaphore(self._max_threads)
+
+    class _Lock:
+        def __init__(self):
+            self.lock = threading.Lock()
+
+        def __enter__(self):
+            self.lock.acquire()
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            self.lock.release()
+
+    new_lock = type(
+        "lock",
+        (_Lock,),
+        {
+            "__doc__": "A dynamic context-aware lock object suitable for multi-threaded operations."
+        },
+    )
 
     def _thread_decorator(self, func):
         def function_wrapper(*args, **kwargs):
@@ -63,7 +81,7 @@ class WarpCore:
     def list_engage(self, iterable: Iterable, worker_function: object, timeout=None):
 
         worker_function = self._thread_decorator(worker_function)
-        for chunk in self._chunker(iterable, self.chunk_size):
+        for chunk in self._chunker(iterable, self._chunk_size):
             for index in chunk:
                 threads = list()
                 job = threading.Thread(target=worker_function, args=(index,))
@@ -77,7 +95,7 @@ class WarpCore:
     def dict_engage(self, dictionary: Dict, worker_function: object, timeout=None):
 
         worker_function = self._thread_decorator(worker_function)
-        for chunk_item in self._chunker(dictionary, self.chunk_size):
+        for chunk_item in self._chunker(dictionary, self._chunk_size):
             threads = list()
             for key, value in chunk_item.items():
                 job = threading.Thread(target=worker_function, args=(key, value))
