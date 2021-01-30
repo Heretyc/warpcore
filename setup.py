@@ -8,7 +8,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name="warpcore",
-    version="1.0.1",
+    version="1.0.2",
     description="Streamlined multi-threaded process acceleration",
     long_description=README,
     long_description_content_type="text/markdown",
