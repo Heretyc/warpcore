@@ -16,7 +16,8 @@ def do_the_thing(number):
 
 
 if __name__ == "__main__":
-    # Someplace to store results, we will use threading.Lock() -> lock.acquire()
+    # Someplace to store results, we will use WarpCore.new_lock() to generate a lock,
+    # then a 'with' context manager to handle all the background work for us
     result_list = []
     # Build a task list
     tasks_list = []
