@@ -25,7 +25,6 @@ __license__ = "Apache 2.0"
 #  For a human-readable & fast explanation of the Apache 2.0 license visit:  http://www.tldrlegal.com/l/apache2
 
 
-
 class WarpCore:
     def __init__(self):
         self.max_threads = cpu_count()
@@ -72,6 +71,8 @@ class WarpCore:
                 job.start()
             for index, thread in enumerate(threads):
                 thread.join(timeout=timeout)
+                while thread.is_alive():
+                    pass
 
     def dict_engage(self, dictionary: Dict, worker_function: object, timeout=None):
 
@@ -84,3 +85,5 @@ class WarpCore:
                 job.start()
             for index, thread in enumerate(threads):
                 thread.join(timeout=timeout)
+                while thread.is_alive():
+                    pass
