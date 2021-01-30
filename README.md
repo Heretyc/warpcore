@@ -17,7 +17,11 @@ pip install warpcore
 
 ## Usage Examples
 
-Please refer to [example0.py](py:https://github.com/BlackburnHax/warpcore/blob/main/example0.py) and [example1.py](https://github.com/BlackburnHax/warpcore/blob/main/example1.py) for basic and more advanced usage examples respectively.
+Please refer to 
+[example0.py](py:https://github.com/BlackburnHax/warpcore/blob/main/example0.py)
+and 
+[example1.py](https://github.com/BlackburnHax/warpcore/blob/main/example1.py)
+for basic and more advanced usage examples respectively.
 ## Meta
 
 Brandon Blackburn – [PGP Encrypted Chat @ Keybase](https://keybase.io/blackburnhax/chat)
