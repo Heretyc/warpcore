@@ -1,3 +1,4 @@
+[![WarpCore logo](https://github.com/BlackburnHax/warpcore/raw/main/docs/warpcore.png)](https://github.com/BlackburnHax/warpcore)
 # warpcore
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 > Streamlined multi-threaded process acceleration
@@ -115,7 +116,7 @@ database = {
 
 # Multi-threaded operation (for normal operation)
 warpcore = WarpCore()
-warpcore.dict_engage(database, do_the_thing)
+warpcore.dict_engage(jobs, do_the_thing)
 ```
 ## Meta
 
