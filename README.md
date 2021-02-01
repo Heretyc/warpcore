@@ -1,4 +1,5 @@
 # warpcore
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 > Streamlined multi-threaded process acceleration
 
 When working with software that needs to be performant, it’s challenging to deal with all the pitfalls of multi-threading while balancing code stability.
