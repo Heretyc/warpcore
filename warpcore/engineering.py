@@ -1,6 +1,7 @@
 from typing import Iterable, Dict
 from multiprocessing import cpu_count
 import threading
+import inspect
 
 """warpcore.py: Streamlined multi-threaded process acceleration"""
 
@@ -59,49 +60,72 @@ class WarpCore:
 
         return function_wrapper
 
-    @staticmethod
-    def _chunker(iterable, chunk_size):
-        if isinstance(iterable, list):
-            for item in range(0, len(iterable), chunk_size):
-                yield iterable[item : item + chunk_size]
-
-        elif isinstance(iterable, dict):
-            iteration = 0
-            final_dict = {}
-            for key, value in iterable.items():
-                if iteration < chunk_size:
-                    final_dict[key] = value
-                    iteration += 1
-                else:
-                    yield final_dict
-                    final_dict = {}
-                    final_dict[key] = value
-                    iteration = 0
-
     def list_engage(self, iterable: Iterable, worker_function: object, timeout=None):
-
+        """
+        Execute a list of jobs against the worker_function
+        Operates similar to-
+        for item in iterable:
+            worker_function(item)
+        :param iterable: A list or list-like object that contains the jobs
+        :param worker_function: A function that will be run in multiple threads against the jobs
+        :param timeout: How many seconds to wait per thread before giving up
+        """
         worker_function = self._thread_decorator(worker_function)
-        for chunk in self._chunker(iterable, self._chunk_size):
-            for index in chunk:
-                threads = list()
-                job = threading.Thread(target=worker_function, args=(index,))
-                threads.append(job)
-                job.start()
-            for index, thread in enumerate(threads):
-                thread.join(timeout=timeout)
-                while thread.is_alive():
-                    pass
+
+        # Generator-friendly operation, rather than just iterating over a list
+        iterations = 0
+        max_iterations = self._chunk_size
+        threads = list()
+        # Keeping generator instanced so we don't loose the current index on the generator object
+        for queue_index in iterable:
+            # splitting the threads into chunks to prevent loading all jobs at once and soaking resources
+            if iterations >= max_iterations:
+                for index, thread in enumerate(threads):
+                    thread.join(timeout=timeout)
+                    while thread.is_alive():
+                        pass
+                iterations = 0
+            job = threading.Thread(target=worker_function, args=(queue_index,))
+            threads.append(job)
+            job.start()
+            iterations += 1
+        # mop up any remaining threads by waiting for them to terminate
+        for index, thread in enumerate(threads):
+            thread.join(timeout=timeout)
+            while thread.is_alive():
+                pass
 
     def dict_engage(self, dictionary: Dict, worker_function: object, timeout=None):
-
+        """
+        Execute a dictionary of jobs against the worker_function
+        Operates similar to-
+        for key, value in dictionary.items():
+            worker_function(key, value)
+        :param dictionary: A dict or dict-like object that contains the jobs
+        :param worker_function: A function that will be run in multiple threads against the jobs
+        :param timeout: How many seconds to wait per thread before giving up
+        """
         worker_function = self._thread_decorator(worker_function)
-        for chunk_item in self._chunker(dictionary, self._chunk_size):
-            threads = list()
-            for key, value in chunk_item.items():
-                job = threading.Thread(target=worker_function, args=(key, value))
-                threads.append(job)
-                job.start()
-            for index, thread in enumerate(threads):
-                thread.join(timeout=timeout)
-                while thread.is_alive():
-                    pass
+
+        # Generator-friendly operation, rather than just iterating over a list
+        iterations = 0
+        max_iterations = self._chunk_size
+        threads = list()
+        # Keeping generator instanced so we don't loose the current index on the generator object
+        for key, value in dictionary.items():
+            # splitting the threads into chunks to prevent loading all jobs at once and soaking resources
+            if iterations >= max_iterations:
+                for index, thread in enumerate(threads):
+                    thread.join(timeout=timeout)
+                    while thread.is_alive():
+                        pass
+                iterations = 0
+            job = threading.Thread(target=worker_function, args=(key, value))
+            threads.append(job)
+            job.start()
+            iterations += 1
+        # mop up any remaining threads by waiting for them to terminate
+        for index, thread in enumerate(threads):
+            thread.join(timeout=timeout)
+            while thread.is_alive():
+                pass
