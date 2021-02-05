@@ -1,7 +1,9 @@
 from typing import Iterable, Dict
-from multiprocessing import cpu_count
+from functools import wraps
+from multiprocessing.pool import ThreadPool
+import multiprocessing
 import threading
-import inspect
+import sys
 
 """warpcore.py: Streamlined multi-threaded process acceleration"""
 
@@ -28,7 +30,7 @@ __license__ = "Apache 2.0"
 
 class WarpCore:
     def __init__(self):
-        self._max_threads = cpu_count()
+        self._max_threads = multiprocessing.cpu_count()
         self._chunk_size = self._max_threads * 32
         self._threadLimiter = threading.BoundedSemaphore(self._max_threads)
 
@@ -51,6 +53,7 @@ class WarpCore:
     )
 
     def _thread_decorator(self, func):
+        @wraps(func)
         def function_wrapper(*args, **kwargs):
             self._threadLimiter.acquire()
             try:
@@ -58,9 +61,16 @@ class WarpCore:
             finally:
                 self._threadLimiter.release()
 
+        setattr(sys.modules[func.__module__], func.__name__, function_wrapper)
         return function_wrapper
 
-    def list_engage(self, iterable: Iterable, worker_function: object, timeout=None):
+    def list_engage(
+        self,
+        iterable: Iterable,
+        worker_function: object,
+        timeout=None,
+        compute_intensive=False,
+    ):
         """
         Execute a list of jobs against the worker_function
         Operates similar to-
@@ -70,32 +80,42 @@ class WarpCore:
         :param worker_function: A function that will be run in multiple threads against the jobs
         :param timeout: How many seconds to wait per thread before giving up
         """
+
         worker_function = self._thread_decorator(worker_function)
 
+        results = list()
+
+        if compute_intensive:
+            pool = multiprocessing.Pool()
+        else:
+            pool = ThreadPool()
         # Generator-friendly operation, rather than just iterating over a list
         iterations = 0
         max_iterations = self._chunk_size
         threads = list()
+
         # Keeping generator instanced so we don't loose the current index on the generator object
         for queue_index in iterable:
             # splitting the threads into chunks to prevent loading all jobs at once and soaking resources
             if iterations >= max_iterations:
-                for index, thread in enumerate(threads):
-                    thread.join(timeout=timeout)
-                    while thread.is_alive():
-                        pass
+                for thread in threads:
+                    results.append(thread.get(timeout))
                 iterations = 0
-            job = threading.Thread(target=worker_function, args=(queue_index,))
+            job = pool.apply_async(worker_function, (queue_index,))
             threads.append(job)
-            job.start()
             iterations += 1
         # mop up any remaining threads by waiting for them to terminate
-        for index, thread in enumerate(threads):
-            thread.join(timeout=timeout)
-            while thread.is_alive():
-                pass
+        for thread in threads:
+            results.append(thread.get(timeout))
+        return results
 
-    def dict_engage(self, dictionary: Dict, worker_function: object, timeout=None):
+    def dict_engage(
+        self,
+        dictionary: Dict,
+        worker_function: object,
+        timeout=None,
+        compute_intensive=False,
+    ):
         """
         Execute a dictionary of jobs against the worker_function
         Operates similar to-
@@ -107,25 +127,28 @@ class WarpCore:
         """
         worker_function = self._thread_decorator(worker_function)
 
+        results = list()
+
+        if compute_intensive:
+            pool = multiprocessing.Pool()
+        else:
+            pool = ThreadPool()
         # Generator-friendly operation, rather than just iterating over a list
         iterations = 0
         max_iterations = self._chunk_size
         threads = list()
+
         # Keeping generator instanced so we don't loose the current index on the generator object
         for key, value in dictionary.items():
             # splitting the threads into chunks to prevent loading all jobs at once and soaking resources
             if iterations >= max_iterations:
-                for index, thread in enumerate(threads):
-                    thread.join(timeout=timeout)
-                    while thread.is_alive():
-                        pass
+                for thread in threads:
+                    results.append(thread.get(timeout))
                 iterations = 0
-            job = threading.Thread(target=worker_function, args=(key, value))
+            job = pool.apply_async(worker_function, (key, value))
             threads.append(job)
-            job.start()
             iterations += 1
         # mop up any remaining threads by waiting for them to terminate
-        for index, thread in enumerate(threads):
-            thread.join(timeout=timeout)
-            while thread.is_alive():
-                pass
+        for thread in threads:
+            results.append(thread.get(timeout))
+        return results
