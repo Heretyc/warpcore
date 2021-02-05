@@ -139,7 +139,7 @@ Each time it re-runs, it displays the performance metrics of the last run on con
 Once complete, it will display the suggested combination of settings
 #### Example 1
 ```shell
-RESULTS: Best performance (85.8% gain) using * compute:True (Default)* with max_parallel: 51
+RESULTS: Best performance (85.8% gain) using * compute:True * with max_parallel: 51
 ```
 This translates to the following setup:
 ```python
