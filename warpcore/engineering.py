@@ -29,8 +29,11 @@ __license__ = "Apache 2.0"
 
 
 class WarpCore:
-    def __init__(self):
-        self._max_threads = multiprocessing.cpu_count()
+    def __init__(self, max_parallel=None):
+        if max_parallel is None:
+            self._max_threads = multiprocessing.cpu_count()
+        else:
+            self._max_threads = max_parallel
         self._chunk_size = self._max_threads * 32
         self._threadLimiter = threading.BoundedSemaphore(self._max_threads)
 
@@ -64,12 +67,116 @@ class WarpCore:
         setattr(sys.modules[func.__module__], func.__name__, function_wrapper)
         return function_wrapper
 
+    def list_profile(self, *args):
+        from datetime import datetime
+
+        cpu_compute = True
+        results = list()
+        delta_slow = 0
+        record_increase = 0
+        record_threads = 0
+        record_mode = cpu_compute
+
+        def _run(cpu_compute, record_increase, record_threads, record_mode):
+            for threads in range(1, (self._max_threads * 4) + 1):
+                self._threadLimiter = threading.BoundedSemaphore(threads)
+                if threads < 2:
+                    start_slow = datetime.now()
+                else:
+                    start_fast = datetime.now()
+                result = self.list_engage(*args, compute=cpu_compute)
+                if threads < 2:
+                    finish_slow = datetime.now()
+                    delta_slow = finish_slow - start_slow
+                    print(f"Baseline: {delta_slow.seconds} seconds")
+                else:
+                    finish_fast = datetime.now()
+
+                    delta_fast = finish_fast - start_fast
+                    increase = delta_slow - delta_fast
+                    percent_inc = round(increase / delta_slow * 100, 1)
+                    if percent_inc >= record_increase:
+                        record_increase = percent_inc
+                        record_threads = threads
+                        record_mode = cpu_compute
+                    print(
+                        f"{percent_inc}% performance gain with max_parallel: {threads}"
+                    )
+            return record_increase, record_threads, record_mode
+
+        record_increase, record_threads, record_mode = _run(
+            True, record_increase, record_threads, record_mode
+        )
+        record_increase, record_threads, record_mode = _run(
+            False, record_increase, record_threads, record_mode
+        )
+
+        if record_mode:
+            print(
+                f"RESULTS: Best performance ({record_increase}% gain) using * compute:True * with max_parallel: {record_threads}"
+            )
+        else:
+            print(
+                f"RESULTS: Best performance ({record_increase}% gain) using * compute:False (Default)* with max_parallel: {record_threads}"
+            )
+        exit(3)
+
+    def dict_profile(self, *args):
+        from datetime import datetime
+
+        cpu_compute = True
+        results = list()
+        delta_slow = 0
+        record_increase = 0
+        record_threads = 0
+        record_mode = cpu_compute
+
+        def _run(cpu_compute, record_increase, record_threads, record_mode):
+            for threads in range(1, (self._max_threads * 4) + 1):
+                self._threadLimiter = threading.BoundedSemaphore(threads)
+                if threads < 2:
+                    start_slow = datetime.now()
+                else:
+                    start_fast = datetime.now()
+                result = self.list_engage(*args, compute=cpu_compute)
+                if threads < 2:
+                    finish_slow = datetime.now()
+                    delta_slow = finish_slow - start_slow
+                    print(f"Baseline: {delta_slow.seconds} seconds")
+                else:
+                    finish_fast = datetime.now()
+
+                    delta_fast = finish_fast - start_fast
+                    increase = delta_slow - delta_fast
+                    percent_inc = round(increase / delta_slow * 100, 1)
+                    if percent_inc >= record_increase:
+                        record_increase = percent_inc
+                        record_threads = threads
+                        record_mode = cpu_compute
+                    print(
+                        f"{percent_inc}% performance gain with max_parallel: {threads}"
+                    )
+            return record_increase, record_threads, record_mode
+
+        record_increase, record_threads, record_mode = _run(
+            True, record_increase, record_threads, record_mode
+        )
+        record_increase, record_threads, record_mode = _run(
+            False, record_increase, record_threads, record_mode
+        )
+
+        if record_mode:
+            print(
+                f"RESULTS: Best performance ({record_increase}% gain) using * compute:True * with max_parallel: {record_threads}"
+            )
+        else:
+            print(
+                f"RESULTS: Best performance ({record_increase}% gain) using * compute:False (Default)* with max_parallel: {record_threads}"
+            )
+        exit(3)
+
     def list_engage(
-        self,
-        iterable: Iterable,
-        worker_function: object,
-        timeout=None,
-        compute_intensive=False,
+        self, iterable: Iterable, worker_function: object, timeout=None, **kwargs
     ):
         """
         Execute a list of jobs against the worker_function
@@ -79,10 +186,10 @@ class WarpCore:
         :param iterable: A list or list-like object that contains the jobs
         :param worker_function: A function that will be run in multiple threads against the jobs
         :param timeout: How many seconds to wait per thread before giving up
+        :keyword compute: (bool) If True, switch to CPU compute mode. Default (False) favors I/O over CPU
         """
-
         worker_function = self._thread_decorator(worker_function)
-
+        compute_intensive = kwargs.get("compute", False)
         results = list()
 
         if compute_intensive:
@@ -110,11 +217,7 @@ class WarpCore:
         return results
 
     def dict_engage(
-        self,
-        dictionary: Dict,
-        worker_function: object,
-        timeout=None,
-        compute_intensive=False,
+        self, dictionary: Dict, worker_function: object, timeout=None, **kwargs
     ):
         """
         Execute a dictionary of jobs against the worker_function
@@ -124,9 +227,10 @@ class WarpCore:
         :param dictionary: A dict or dict-like object that contains the jobs
         :param worker_function: A function that will be run in multiple threads against the jobs
         :param timeout: How many seconds to wait per thread before giving up
+        :keyword compute: (bool) If True, switch to CPU compute mode. Default (False) favors I/O over CPU
         """
         worker_function = self._thread_decorator(worker_function)
-
+        compute_intensive = kwargs.get("compute", False)
         results = list()
 
         if compute_intensive:

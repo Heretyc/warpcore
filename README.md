@@ -118,6 +118,46 @@ database = {
 warpcore = WarpCore()
 warpcore.dict_engage(jobs, do_the_thing)
 ```
+
+### Fine Tuning for Performance
+_TL;DR: [example2.py](https://github.com/BlackburnHax/warpcore/blob/main/docs/example2.py) Is a working sample of the profiling system._
+
+Your workload and processor architecture will dictate which settings work best for any situation.
+
+You can leave things at default, but if you want to squeeze even more performance out, consider using the profiling feature.
+```python
+# Regular operation
+warpcore.list_engage(tasks_list, do_the_thing)
+
+# Performance Profiling mode of same function as above
+warpcore.list_profile(tasks_list, do_the_thing)
+```
+Profiling simply runs your code, but benchmarks execution time of the full job list. Then tweaks the settings and re-runs the jobs again.
+
+Each time it re-runs, it displays the performance metrics of the last run on console.
+
+Once complete, it will display the suggested combination of settings
+#### Example 1
+```shell
+RESULTS: Best performance (85.8% gain) using * compute:True (Default)* with max_parallel: 51
+```
+This translates to the following setup:
+```python
+warpcore = WarpCore(51)
+warpcore.list_engage(tasks_list, do_the_thing, compute=True)
+```
+#### Example 2
+```shell
+RESULTS: Best performance (91.4% gain) using * compute:False (Default)* with max_parallel: 32
+```
+This translates to the following setup:
+```python
+warpcore = WarpCore(32)
+warpcore.list_engage(tasks_list, do_the_thing, compute=False)
+# or just leave out 'compute' keyword to assume False
+warpcore.list_engage(tasks_list, do_the_thing)
+```
+
 ## Meta
 
 Brandon Blackburn – [PGP Encrypted Chat @ Keybase](https://keybase.io/blackburnhax/chat)
