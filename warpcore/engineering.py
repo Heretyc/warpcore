@@ -1,4 +1,4 @@
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Callable
 from functools import wraps
 from multiprocessing.pool import ThreadPool
 import multiprocessing
@@ -176,7 +176,7 @@ class WarpCore:
         exit(3)
 
     def list_engage(
-        self, iterable: Iterable, worker_function: object, timeout=None, **kwargs
+        self, iterable: Iterable, worker_function: Callable, timeout=None, **kwargs
     ):
         """
         Execute a list of jobs against the worker_function
@@ -217,7 +217,7 @@ class WarpCore:
         return results
 
     def dict_engage(
-        self, dictionary: Dict, worker_function: object, timeout=None, **kwargs
+        self, dictionary: Dict, worker_function: Callable, timeout=None, **kwargs
     ):
         """
         Execute a dictionary of jobs against the worker_function
